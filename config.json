@@ -1,8 +1,8 @@
 {
   "bot": {
-    "host": "na.mcfallout.net",
+    "host": "",
     "port": 19132,
-    "username": "xibot001",
+    "username": "",
     "offline": false,
     "version": "1.21.100"
   },
