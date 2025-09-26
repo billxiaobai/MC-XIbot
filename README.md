@@ -3,37 +3,36 @@
 目前主要適用於廢土基岩版本伺服器
 bedrock.mcfallout.net
 
-# 設定檔案
-'{
+### 設定檔案
+{
   "bot": {
-    "host": "", //伺服器IP
-    "port": 19132, //伺服器端點
-    "username": "", //玩家名稱 可隨意取
-    "offline": false, //是否開啟驗證/未驗證模式
-    "version": "1.21.100" //bot登入版本
+    "host": "",         // 伺服器IP
+    "port": 19132,      // 伺服器端點 (Minecraft Bedrock 預設)
+    "username": "",     // 玩家名稱 (可隨意取)
+    "offline": false,   // 是否開啟驗證/未驗證模式
+    "version": "1.21.100" // bot登入版本
   },
   "features": {
     "autoReconnect": {
-      "enabled": true, //是否自動重連
-      "delay": 5000, //重連延遲時間
-      "maxRetries": 20 //嘗試次數
+      "enabled": true,  // 是否自動重連
+      "delay": 5000,    // 重連延遲時間 (毫秒)
+      "maxRetries": 20  // 嘗試次數
     },
     "advertisement": {
-      "enabled": false, //是否開啟廣告
+      "enabled": false, // 是否開啟廣告
       "messages": [
-    {
-          "text": "test123", //廣告內容
-          "interval": 300000 //廣告延遲時常(毫秒)
+        {
+          "text": "test123", // 廣告內容
+          "interval": 300000 // 廣告延遲時常 (毫秒)
         }
       ]
     },
     "teleport": {
-      "enabled": true, //是否啟用自動tok
-      "allowedPlayers": ["xiaobai8088"] //管理員
+      "enabled": true,  // 是否啟用自動 /tok (可能指某種傳送或認證指令)
+      "allowedPlayers": ["xiaobai8088"] // 管理員 (允許使用此功能的玩家)
     }
   }
 }
-'
 ### 聯絡作者
 若有問題 我的 Discord ID： **billxiaobai** or **namiyuto**
 
