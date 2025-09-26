@@ -1,5 +1,5 @@
 # MC-XIbot
-這是可以登入任何MC伺服器的基岩版本客戶端
+登入任何MC伺服器的基岩版本客戶端
 目前主要適用於廢土基岩版本伺服器
 bedrock.mcfallout.net
 
