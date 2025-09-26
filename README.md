@@ -4,5 +4,6 @@
 bedrock.mcfallout.net
 
 ### 聯絡作者
-若有問題 我的 Discord ID： **billxiaobai** 
-也可以：(https://discord.gg/xNpjQChDTW)
+若有問題 我的 Discord ID： **billxiaobai**  
+
+也可以加入社群一起討論：(https://discord.gg/xNpjQChDTW)
