@@ -2,9 +2,9 @@
 這是可以登入任何MC伺服器的基岩版本客戶端
 目前主要適用於廢土基岩版本伺服器
 bedrock.mcfallout.net
-
-### 設定檔案
-{
+ 
+### 設定檔案(config.jcon)
+```json {
   "bot": {
     "host": "",         // 伺服器IP
     "port": 19132,      // 伺服器端點 (Minecraft Bedrock 預設)
@@ -32,7 +32,8 @@ bedrock.mcfallout.net
       "allowedPlayers": ["xiaobai8088"] // 管理員 (允許使用此功能的玩家)
     }
   }
-}
+} 
+
 ### 聯絡作者
 若有問題 我的 Discord ID： **billxiaobai** or **namiyuto**
 
