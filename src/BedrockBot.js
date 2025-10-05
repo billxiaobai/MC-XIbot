@@ -8,6 +8,7 @@ const ConfigManager = require('./ConfigManager');
 const AutoReconnect = require('./components/AutoReconnect');
 const Advertisement = require('./components/Advertisement');
 const Teleport = require('./components/Teleport');
+const AutochangeIP = require('./components/AutochangeIP'); // 新增引用
 
 class BedrockBot extends EventEmitter {
     constructor(configPath = './config.json') {
@@ -20,24 +21,18 @@ class BedrockBot extends EventEmitter {
         this.isConnected = false;
         this.hasEmittedDisconnect = false;
         this.components = new Map();
-        this.initializationFailed = false; // 新增初始化失敗標記
+        this.initializationFailed = false; 
         this.initialize();
     }
 
     initialize() {
         try {
-            // Initialize configuration
             this.config = new ConfigManager(this.configPath);
-
-            // Initialize logger
             this.logger = Logger
-
-            // Setup config watcher
             this.config.addWatcher(this.handleConfigChange.bind(this));
 
             this.logger.info('BedrockBot initialized successfully');
         } catch (error) {
-            // 確保 logger 可用（Logger 由程式內固定設定，不從 config.json 讀取）
             this.logger = Logger;
             const isMissingRequired = error && error.message && error.message.includes('Missing required configuration sections');
             if (isMissingRequired) {
@@ -57,15 +52,12 @@ class BedrockBot extends EventEmitter {
                     this.logger.info('Loaded configuration from config.json fallback (logger uses built-in settings)');
                     return;
                 } catch (readErr) {
-                    // 讀檔或解析失敗：顯示錯誤並停止啟動流程，但不關閉程式
                     this.logger.error(`Failed to read/parse config.json: ${readErr.message}`);
                     this.logger.error('Initialization failed — start aborted. Fix config.json and restart the process.');
                     this.initializationFailed = true; // 標記初始化失敗
                     return;
                 }
             }
-
-            // 其他未知錯誤維持原行為（仍印出錯誤但不自動結束）
             console.error('Failed to initialize bot:', error.message);
             this.logger.error(`Failed to initialize bot: ${error.message}`);
             this.initializationFailed = true;
@@ -85,20 +77,16 @@ class BedrockBot extends EventEmitter {
     async start() {
         if (this.initializationFailed) {
             this.logger.error('Cannot start Bedrock Bot because initialization failed. Check previous errors.');
-            return; // 停止啟動但不關閉程式
+            return; 
         }
 
         try {
             this.logger.info('Starting Bedrock Bot...');
-
-            // Initialize components first, including AutoReconnect
             await this.initializeComponents();
 
             await this.connect();
         } catch (error) {
             this.logger.error(`Failed to start bot: ${error.message}`);
-            
-            // Even if initial connection fails, AutoReconnect should handle retries
             const autoReconnect = this.getComponent('autoReconnect');
             if (autoReconnect) {
                 this.logger.info('Initial connection failed, but AutoReconnect will handle retries');
@@ -114,27 +102,32 @@ class BedrockBot extends EventEmitter {
             this.hasEmittedDisconnect = false; // Reset flag before attempting connection
             const botConfig = this.config.get('bot');
 
-            this.logger.info(`Connecting to ${botConfig.host}:${botConfig.port} as ${botConfig.username}`);
+            // 取得 host/port 從 AutochangeIP
+            const host = AutochangeIP.getCurrentHost();
+            const port = AutochangeIP.getCurrentPort();
+
+            this.logger.info(`Connecting to ${host}:${port} as ${botConfig.username}`);
 
             const clientOptions = {
-                host: botConfig.host,
-                port: botConfig.port,
+                host: host,
+                port: port,
                 username: botConfig.username,
                 offline: botConfig.offline,
                 version: botConfig.version || '1.21.100',
-                // Add connection timeout
                 connectTimeout: 30000, // 30 seconds
             };
 
             this.client = bedrock.createClient(clientOptions);
             this.logger.info(`Connecting to ${this.client.options.host}:${this.client.options.port}, version ${this.client.options.version})`);
             this.setupEventHandlers();
-
-            // Set up a connection timeout promise
             return new Promise((resolve, reject) => {
                 const timeout = setTimeout(() => {
                     if (!this.isConnected) {
                         const error = new Error('Connect timed out');
+                        const switched = AutochangeIP.handleErrorLog(`[${new Date().toISOString()}] [ERROR] Failed to start bot: Connect timed out (Logger.js:54)`);
+                        if (switched) {
+                            this.logger.warn('Connection timed out, switching to next server IP...');
+                        }
                         this.handleError(error);
                         reject(error);
                     }
@@ -151,6 +144,13 @@ class BedrockBot extends EventEmitter {
                 const onError = (error) => {
                     clearTimeout(timeout);
                     this.client.removeListener('spawn', onSpawn);
+                    // 新增：若是連線逾時錯誤則切換 IP
+                    if (error && error.message && error.message.includes('Connect timed out')) {
+                        const switched = AutochangeIP.handleErrorLog(`[${new Date().toISOString()}] [ERROR] Failed to start bot: Connect timed out (Logger.js:54)`);
+                        if (switched) {
+                            this.logger.warn('Connection timed out, switching to next server IP...');
+                        }
+                    }
                     this.handleError(error);
                     reject(error);
                 };
@@ -261,16 +261,18 @@ class BedrockBot extends EventEmitter {
                     this.components.set(component.name, component);
 
                     // Setup component event forwarding
-                    component.on('reconnectAttempt', async (attempt) => {
+                    component.on('reconnectAttempt', async (attempt, lastError) => {
                         this.emit('reconnectAttempt', attempt);
-                        // Actually perform the reconnection
                         try {
-                            await this.performReconnect();
+                            await this.performReconnect(lastError);
                         } catch (error) {
                             this.logger.error(`Reconnect attempt ${attempt} failed: ${error.message}`);
                             // Reset isReconnecting in AutoReconnect to allow for next attempt
                             if (component.name === 'autoReconnect') {
-                                component.isReconnecting = false;
+                                // 不要設 isReconnecting = false，直接繼續重試
+                                setTimeout(() => {
+                                    component.attemptReconnect(error);
+                                }, component.delay || 5000);
                             }
                         }
                     });
@@ -325,9 +327,21 @@ class BedrockBot extends EventEmitter {
         this.logger.debug('Updating components with new configuration');
     }
 
-    async performReconnect() {
+    async performReconnect(lastError) {
         try {
             this.logger.info('Attempting to reconnect...');
+
+            // 若上次錯誤為逾時，則切換 IP
+            if (
+                lastError &&
+                lastError.message &&
+                lastError.message.includes('Connect timed out')
+            ) {
+                const switched = AutochangeIP.handleErrorLog(`[${new Date().toISOString()}] [ERROR] Failed to start bot: Connect timed out (Logger.js:54)`);
+                if (switched) {
+                    this.logger.warn('AutoReconnect: Connection timed out, switching to next server IP...');
+                }
+            }
 
             // Cleanup only non-AutoReconnect components before reconnecting
             this.cleanupComponentsExceptAutoReconnect();

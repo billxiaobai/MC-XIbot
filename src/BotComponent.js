@@ -12,14 +12,6 @@ class BotComponent extends EventEmitter {
         this.timeouts = [];
     }
 
-    async onEnable() {
-        // Override in subclasses
-    }
-
-    async onDisable() {
-        // Override in subclasses
-    }
-
     cleanup() {
         this.clearIntervals();
         this.clearTimeouts();
@@ -79,5 +71,4 @@ class BotComponent extends EventEmitter {
         return this.enabled;
     }
 }
-
 module.exports = BotComponent;

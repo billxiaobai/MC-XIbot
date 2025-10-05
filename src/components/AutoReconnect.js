@@ -25,17 +25,12 @@ class AutoReconnect extends BotComponent {
         if (this.isReconnecting) return;
 
         this.logger.warn(`Bot disconnected: ${reason || 'Unknown reason'}`);
-        this.attemptReconnect();
+        this.attemptReconnect(reason instanceof Error ? reason : new Error(reason || 'Unknown reason'));
     }
 
     handleError(error) {
-        // Only handle errors that aren't already handled by disconnect
         if (this.isReconnecting) return;
-
         this.logger.error(`Bot error detected by AutoReconnect: ${error.message}`);
-        
-        // Only attempt reconnect for connection-related errors that happen
-        // when we're not already in a disconnect process
         if (!this.bot.isConnected && (
             error.message.includes('Connect timed out') ||
             error.message.includes('ETIMEDOUT') ||
@@ -44,7 +39,7 @@ class AutoReconnect extends BotComponent {
             error.code === 'ETIMEDOUT' ||
             error.code === 'ECONNREFUSED'
         )) {
-            this.attemptReconnect();
+            this.attemptReconnect(error);
         }
     }
 
@@ -54,7 +49,8 @@ class AutoReconnect extends BotComponent {
         this.isReconnecting = false;
     }
 
-    attemptReconnect() {
+    // lastError 參數可選
+    attemptReconnect(lastError = null) {
         if (this.retryCount >= this.maxRetries) {
             this.logger.error(`Maximum retry attempts (${this.maxRetries}) reached. Stopping bot.`);
             this.emit('maxRetriesReached');
@@ -70,13 +66,12 @@ class AutoReconnect extends BotComponent {
 
         this.createTimeout(async () => {
             try {
-                this.emit('reconnectAttempt', this.retryCount);
+                // 傳遞 lastError 給 BedrockBot
+                this.emit('reconnectAttempt', this.retryCount, lastError);
             } catch (error) {
                 this.logger.error(`Reconnect attempt ${this.retryCount} failed: ${error.message}`);
-                this.isReconnecting = false;
-                // Try again after a short delay
                 setTimeout(() => {
-                    this.attemptReconnect();
+                    this.attemptReconnect(error);
                 }, this.delay);
             }
         }, this.delay);
@@ -102,4 +97,5 @@ class AutoReconnect extends BotComponent {
     }
 }
 
+module.exports = AutoReconnect;
 module.exports = AutoReconnect;

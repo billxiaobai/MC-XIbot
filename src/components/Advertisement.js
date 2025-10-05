@@ -4,28 +4,19 @@ class Advertisement extends BotComponent {
     constructor(bot, config, logger) {
         super('advertisement', bot, config, logger);
         this.activeIntervals = new Map();
-
-        // 安全取得 messages（支援多種 config 結構）
         const msgs = this.getConfigValue('advertisement.messages') ||
                      this.getConfigValue('features.advertisement.messages') ||
                      this.getConfigValue('advertisement')?.messages ||
                      [];
         this.messages = Array.isArray(msgs) ? msgs : [];
     }
-
-    // 新增：通用安全取得 config 值的 helper（支援 dot path 與分段取值）
     getConfigValue(path) {
         if (!this.config || typeof this.config.get !== 'function') return undefined;
-
-        // 1) 直接嘗試呼叫 get(path)（若 ConfigManager 支援 dot-path）
         try {
             const direct = this.config.get(path);
             if (direct !== undefined) return direct;
         } catch (e) {
-            // ignore
         }
-
-        // 2) 以 '.' 分段，先取第一段再往下查找（支援 fallback get 只回傳頂層 object 的情況）
         const parts = path.split('.');
         try {
             let val = this.config.get(parts[0]);
@@ -50,7 +41,6 @@ class Advertisement extends BotComponent {
         }
 
         try {
-            // 若 config 在啟用時可能更新，重新讀一次（保險起見）
             const msgs = this.getConfigValue('advertisement.messages') ||
                          this.getConfigValue('features.advertisement.messages') ||
                          this.getConfigValue('advertisement')?.messages ||
