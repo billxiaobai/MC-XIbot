@@ -20,17 +20,15 @@ function switchToNextHost() {
   currentIndex = (currentIndex + 1) % serverList.length;
   return getCurrentHost();
 }
-
-// 偵測錯誤訊息並自動切換IP
 function handleErrorLog(log) {
   if (
     log.includes("Failed to start bot: Connect timed out") &&
     log.includes("Logger.js:54")
   ) {
     switchToNextHost();
-    return true; // 已切換
+    return true; 
   }
-  return false; // 無需切換
+  return false; 
 }
 
 module.exports = {
