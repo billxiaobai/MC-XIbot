@@ -1,6 +1,6 @@
 {
-  "name": "mcf-bedrock-bot",
-  "version": "1.0.0",
+  "name": "bedrock-bot",
+  "version": "1.1.0",
   "description": "A clean, modular Minecraft Bedrock Edition bot",
   "main": "main.js",
   "scripts": {
